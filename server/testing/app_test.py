@@ -85,26 +85,50 @@ class TestApp:
             db.session.commit()
 
 
+    # File: app_test.py
+
+from datetime import datetime
+
+from app import app
+from models import db, Message
+
+class TestApp:
+    '''Flask application in app.py'''
+
+
+
     def test_updates_body_of_message_in_database(self):
         '''updates the body of a message in the database.'''
         with app.app_context():
 
-            m = Message.query.first()
-            id = m.id
-            body = m.body
+            existing_message = Message.query.first()
+            if existing_message is None:
+             
+                new_message = Message(body="Initial body", username="TestUser")
+                db.session.add(new_message)
+                db.session.commit()
+                existing_message = new_message
+            
+        
+            id = existing_message.id
+            body = existing_message.body
 
-            app.test_client().patch(
+           
+            client = app.test_client()
+            response = client.patch(
                 f'/messages/{id}',
-                json={
-                    "body":"Goodbye 👋",
-                }
+                json={"body": "Updated body"}
             )
 
-            g = Message.query.filter_by(body="Goodbye 👋").first()
-            assert(g)
+            assert response.status_code == 200
 
-            g.body = body
-            db.session.add(g)
+            
+            updated_message = Message.query.get(id)
+            assert updated_message.body == "Updated body"
+
+          
+            updated_message.body = body
+            db.session.add(updated_message)
             db.session.commit()
 
     def test_returns_data_for_updated_message_as_json(self):
